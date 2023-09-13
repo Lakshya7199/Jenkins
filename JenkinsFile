@@ -18,12 +18,12 @@ pipeline{
                     sh "docker build -t app-backend . "
                     
                 }
-                dir("Docker/frontend"){
+                dir("docker-assignment/frontend"){
                     
                     sh "docker build -t app-frontend . "
                     
                 }
-                dir("Docker"){
+                dir("docker-assignment"){
                     
                     sh "docker-compose up --build "
                     
