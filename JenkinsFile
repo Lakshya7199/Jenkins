@@ -2,12 +2,11 @@ pipeline {
     agent any
 
     environment {
-        Last-Commit-Id: ${env.GIT_COMMIT}
         GOOGLE_APPLICATION_CREDENTIALS = credentials('new-project-1')
         PROJECT_ID = 'new-project-399404'
         REGION = 'us-central1'  // Change to your preferred region
         IMAGE_NAME = 'docker-repo/backend-1'
-        IMAGE_TAG = 'Last-Commit-Id'
+        IMAGE_TAG = "${Last_Commit_Id}"
     }
 
     stages {
