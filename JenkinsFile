@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        Last-Commit-Id: ${env.GIT_COMMIT}
         GOOGLE_APPLICATION_CREDENTIALS = credentials('new')
         PROJECT_ID = 'new-project-399404'
         REGION = 'us-central1'  // Change to your preferred region
