@@ -5,5 +5,5 @@ Integrate jenkins with github to run the docker-assignment https://github.com/La
 Run with the help of docker compose file 
 Run with the dockerfile of each i.e, Frontend & Backend.
 
-Do it with the freestyle as well as pipeline .
+Do it with the freestyle as well as pipeline .ll
 ll
