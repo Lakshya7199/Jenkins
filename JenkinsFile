@@ -3,10 +3,10 @@ pipeline {
 
     environment {
         Last_Commit_Id = "${env.GIT_COMMIT}"
-        GOOGLE_APPLICATION_CREDENTIALS = credentials('new-project-1')
-        PROJECT_ID = 'new-project-399404'
-        REGION = 'us-central1'  // Change to your preferred region
-        IMAGE_NAME = 'docker-repo/backend-1'
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('new-jenkins')
+        PROJECT_ID = 'jenkins-399608'
+        REGION = 'us-central1'  
+        IMAGE_NAME = 'repo/backend-1'
         IMAGE_TAG = "${Last_Commit_Id}"
     }
 
@@ -19,31 +19,110 @@ pipeline {
 
         stage("Clone") {
             steps {
-                sh "git clone https://github.com/madhuri2604/docker-backend.git"    
+                sh "git clone https://github.com/madhuri2604/CI/CD-pipeline.git"
+                sh "git clone https://github.com/madhuri2604/helm-chart.git"
             }
         }
         
-        stage("approval") {
-            options {
-                timeout(time: 1, unit: 'MINUTES')
-            }
-            steps {
-                input message: "Please approve to proceed with deployment", submitter: "your-approver-user"
-            }
-        }
 
         stage('Build and Push Docker Image') {
             steps {
-                dir("docker-backend") {
+                dir("CI/CD-pipeline") {
                     script {
-                        sh "gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS"
-                        sh "gcloud config set project $PROJECT_ID"
-                        sh "gcloud auth configure-docker $REGION-docker.pkg.dev --quiet"
-                        sh "sudo docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG ."
-                        sh "sudo docker push $REGION-docker.pkg.dev/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG"
+                        sh '''
+                            sudo gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+                            sudo gcloud config set project $PROJECT_ID
+                            sudo gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+                            sudo docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG .
+                            sudo docker push $REGION-docker.pkg.dev/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG
+                        '''
                     }
                 }
             }
+        }
+        stage('Change File'){
+          steps{
+                dir("helm-chart"){
+                    sh '''
+cat > values.yaml << EOL
+# Default values for mychart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  port: 80
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+backend:
+  image:
+    repository: $REGION-docker.pkg.dev/$PROJECT_ID/$IMAGE_NAME:$IMAGE_TAG
+  targetPort: 5000
+  servicetype: LoadBalancer
+
+frontend:
+  image:
+    repository: us-central1-docker.pkg.dev/jenkins-399608/repo/frontend1:v1
+  targetPort: 80
+  servicetype: LoadBalancer
+EOL
+                 
+'''
+
+                }
+            }
+        }
+        stage('Push to github'){
+          steps{
+                dir("helm-chart"){
+                    sh '''
+                      git add values.yaml
+                      git commit -m "Update file with new image"
+                      git push
+                    '''  
+                }
+          }
         }
     }
 }
